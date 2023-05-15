@@ -2,7 +2,6 @@ import express from "express";
 import { Server } from "socket.io";
 import http from "http";
 
-
 const app = express();
 
 async function start() {
@@ -15,45 +14,59 @@ async function start() {
   // const roomNmae = "dogRoom";
 
   io.on("connection", (socket) => {
-    console.log("connection");    
+    console.log(`Connection : ${socket.id}`);
+
     socket["nickName"] = "User";
 
     socket.on("message", (message) => {
-      const { type, room, payload } = message;
+      const { type, payload, room } = message;
 
       switch (type) {
         case "nickName":
-          socket["nickName"] = payload;
+          socket["nickName"] = payload.length == 0 ? "User" : payload;
           // io.in(roomNmae).emit("message",  payload);
           break;
 
         case "newMessage":
-          io.in(room).emit("message", `${socket["nickName"]} : ${payload}`);
+          console.log(`${socket["nickName"]} : ${payload}`);
+          socket.to(room).emit("message", {
+            nickName: socket["nickName"],
+            payload: payload,
+          });
           break;
       }
     });
 
     socket.on("join", (data) => {
-      // subscriber.subscribe(data.room);
+      const { room } = data;
+      console.log(`Join Room : ${room}`);
 
-      console.log(data.toString());
-      socket.join(data.room);
-      socket.to(data.room).emit("joined");
+      socket.join(room);
+      socket.to(room).emit("joined");
     });
 
     socket.on("offer", (offer) => {
-      const {room, offerData} = offer;
+      const { room, offerData } = offer;
+      console.log(`offer!!!! Room : ${room}`);
+
       socket.to(room).emit("offer", offerData);
+      // io.to(room).emit("offer", offerData);
     });
 
     socket.on("answer", (answer) => {
-      const {room, answerData} = answer;
+      const { room, answerData } = answer;
+      console.log(`offer!!!! Room : ${room} , Answer : ${answer.toString()}`);
       socket.to(room).emit("answer", answerData);
+      // io.to(room).emit("answer", answerData);
     });
 
     socket.on("ice", (ice) => {
-      const {room, iceData} = ice;
+      const { room, iceData } = ice;
+      console.log(`ice!!!! Room : ${room}`);
+
       socket.to(room).emit("ice", iceData);
+      // io.to(room).emit("ice", iceData);
+      // socket.emit('ice', iceData);
     });
 
     socket.on("close", () => {
